@@ -226,24 +226,67 @@ class SpaceBattleGame:
         return None
 
     def show_winner(self, winner):
-        """Display the winner and pause briefly."""
-        message = self.winner_font.render(
-            winner,
-            True,
-            WHITE,
-        )
+        """Display the winner and wait for a restart or quit."""
+        while True:
+            self.screen.blit(self.background, (0, 0))
 
-        self.screen.blit(
-            message,
-            (
-                WIDTH // 2 - message.get_width() // 2,
-                HEIGHT // 2 - message.get_height() // 2,
-            ),
-        )
+            message = self.winner_font.render(
+                winner,
+                True,
+                WHITE,
+            )
 
-        pygame.display.flip()
-        pygame.time.delay(3000)
+            restart_text = self.font.render(
+                "Press R to restart",
+                True,
+                WHITE,
+            )
 
+            quit_text = self.font.render(
+                "Press ESC to quit",
+                True,
+                WHITE,
+            )
+
+            self.screen.blit(
+                message,
+                (
+                    WIDTH // 2 - message.get_width() // 2,
+                    HEIGHT // 2 - message.get_height(),
+                ),
+            )
+
+            self.screen.blit(
+                restart_text,
+                (
+                    WIDTH // 2 - restart_text.get_width() // 2,
+                    HEIGHT // 2 + 20,
+                ),
+            )
+
+            self.screen.blit(
+                quit_text,
+                (
+                    WIDTH // 2 - quit_text.get_width() // 2,
+                    HEIGHT // 2 + 65,
+                ),
+            )
+
+            pygame.display.flip()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return False
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r:
+                        self.reset_game()
+                        return True
+
+                    if event.key == pygame.K_ESCAPE:
+                        return False
+
+            self.clock.tick(FPS)
     def run(self):
         """Run the main game loop."""
         running = True
@@ -269,8 +312,11 @@ class SpaceBattleGame:
             winner = self.get_winner()
 
             if winner:
-                self.draw()
-                self.show_winner(winner)
+                restart = self.show_winner(winner)
+
+                if restart:
+                    continue
+
                 running = False
                 continue
 
@@ -286,4 +332,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
