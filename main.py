@@ -31,6 +31,7 @@ class SpaceBattleGame:
 
         self.load_assets()
         self.reset_game()
+        self.show_controls = True
 
     def load_assets(self):
         """Load and prepare the game images."""
@@ -50,24 +51,30 @@ class SpaceBattleGame:
 
         self.yellow_ship = pygame.transform.rotate(
             pygame.transform.scale(
-                yellow_image, (SHIP_WIDTH, SHIP_HEIGHT)
+                yellow_image,
+                (SHIP_WIDTH, SHIP_HEIGHT),
             ),
             90,
         )
 
         self.red_ship = pygame.transform.rotate(
             pygame.transform.scale(
-                red_image, (SHIP_WIDTH, SHIP_HEIGHT)
+                red_image,
+                (SHIP_WIDTH, SHIP_HEIGHT),
             ),
             -90,
         )
 
         self.background = pygame.transform.scale(
-            space_image, (WIDTH, HEIGHT)
+            space_image,
+            (WIDTH, HEIGHT),
         )
 
         self.border = pygame.Rect(
-            WIDTH // 2 - 5, 0, 10, HEIGHT
+            WIDTH // 2 - 5,
+            0,
+            10,
+            HEIGHT,
         )
 
     def reset_game(self):
@@ -93,7 +100,9 @@ class SpaceBattleGame:
         self.red_health = STARTING_HEALTH
 
     def handle_movement(self, keys):
-        """Move both spaceships while keeping them inside their areas."""
+        """Move both spaceships inside their areas."""
+
+        # Yellow spaceship - W A S D
         if keys[pygame.K_a] and self.yellow.left - SHIP_SPEED > 0:
             self.yellow.x -= SHIP_SPEED
 
@@ -112,6 +121,7 @@ class SpaceBattleGame:
         ):
             self.yellow.y += SHIP_SPEED
 
+        # Red spaceship - Arrow keys
         if (
             keys[pygame.K_LEFT]
             and self.red.left - SHIP_SPEED > self.border.right
@@ -124,12 +134,19 @@ class SpaceBattleGame:
         if keys[pygame.K_UP] and self.red.top - SHIP_SPEED > 0:
             self.red.y -= SHIP_SPEED
 
-        if keys[pygame.K_DOWN] and self.red.bottom + SHIP_SPEED < HEIGHT:
+        if (
+            keys[pygame.K_DOWN]
+            and self.red.bottom + SHIP_SPEED < HEIGHT
+        ):
             self.red.y += SHIP_SPEED
 
     def fire_bullet(self, player):
-        """Create a bullet for the selected player."""
-        if player == "yellow" and len(self.yellow_bullets) < MAX_BULLETS:
+        """Fire a bullet for the selected player."""
+
+        if player == "yellow":
+            if len(self.yellow_bullets) >= MAX_BULLETS:
+                return
+
             bullet = pygame.Rect(
                 self.yellow.right,
                 self.yellow.centery - 2,
@@ -138,7 +155,10 @@ class SpaceBattleGame:
             )
             self.yellow_bullets.append(bullet)
 
-        elif player == "red" and len(self.red_bullets) < MAX_BULLETS:
+        elif player == "red":
+            if len(self.red_bullets) >= MAX_BULLETS:
+                return
+
             bullet = pygame.Rect(
                 self.red.left - 10,
                 self.red.centery - 2,
@@ -147,14 +167,25 @@ class SpaceBattleGame:
             )
             self.red_bullets.append(bullet)
 
+    def handle_keydown(self, event):
+        """Handle keyboard actions during gameplay."""
+
+        if event.key == pygame.K_LCTRL:
+            self.fire_bullet("yellow")
+
+        elif event.key == pygame.K_RCTRL:
+            self.fire_bullet("red")
+
     def update_bullets(self):
         """Move bullets and detect collisions."""
+
         for bullet in self.yellow_bullets[:]:
             bullet.x += BULLET_SPEED
 
             if bullet.colliderect(self.red):
                 self.red_health -= 1
                 self.yellow_bullets.remove(bullet)
+
             elif bullet.left > WIDTH:
                 self.yellow_bullets.remove(bullet)
 
@@ -164,22 +195,92 @@ class SpaceBattleGame:
             if bullet.colliderect(self.yellow):
                 self.yellow_health -= 1
                 self.red_bullets.remove(bullet)
+
             elif bullet.right < 0:
                 self.red_bullets.remove(bullet)
 
-    def draw(self):
-        """Render the current game state."""
+    def draw_controls(self):
+        """Display player controls before the game starts."""
+
         self.screen.blit(self.background, (0, 0))
 
-        pygame.draw.rect(self.screen, WHITE, self.border)
-
-        red_health = self.font.render(
-            f"Health: {self.red_health}",
+        title = self.winner_font.render(
+            "SPACESHIP BATTLE",
             True,
             WHITE,
         )
+
+        yellow_controls = self.font.render(
+            "Yellow: W A S D | Fire: Left Ctrl",
+            True,
+            YELLOW,
+        )
+
+        red_controls = self.font.render(
+            "Red: Arrow Keys | Fire: Right Ctrl",
+            True,
+            RED,
+        )
+
+        start_text = self.font.render(
+            "Press ENTER to start",
+            True,
+            WHITE,
+        )
+
+        self.screen.blit(
+            title,
+            (
+                WIDTH // 2 - title.get_width() // 2,
+                90,
+            ),
+        )
+
+        self.screen.blit(
+            yellow_controls,
+            (
+                WIDTH // 2 - yellow_controls.get_width() // 2,
+                220,
+            ),
+        )
+
+        self.screen.blit(
+            red_controls,
+            (
+                WIDTH // 2 - red_controls.get_width() // 2,
+                275,
+            ),
+        )
+
+        self.screen.blit(
+            start_text,
+            (
+                WIDTH // 2 - start_text.get_width() // 2,
+                370,
+            ),
+        )
+
+        pygame.display.flip()
+
+    def draw(self):
+        """Render the current game state."""
+
+        self.screen.blit(self.background, (0, 0))
+
+        pygame.draw.rect(
+            self.screen,
+            WHITE,
+            self.border,
+        )
+
         yellow_health = self.font.render(
             f"Health: {self.yellow_health}",
+            True,
+            WHITE,
+        )
+
+        red_health = self.font.render(
+            f"Health: {self.red_health}",
             True,
             WHITE,
         )
@@ -208,15 +309,24 @@ class SpaceBattleGame:
         )
 
         for bullet in self.yellow_bullets:
-            pygame.draw.rect(self.screen, YELLOW, bullet)
+            pygame.draw.rect(
+                self.screen,
+                YELLOW,
+                bullet,
+            )
 
         for bullet in self.red_bullets:
-            pygame.draw.rect(self.screen, RED, bullet)
+            pygame.draw.rect(
+                self.screen,
+                RED,
+                bullet,
+            )
 
         pygame.display.flip()
 
     def get_winner(self):
         """Return the winner when a player's health reaches zero."""
+
         if self.red_health <= 0:
             return "Yellow Wins!"
 
@@ -226,9 +336,13 @@ class SpaceBattleGame:
         return None
 
     def show_winner(self, winner):
-        """Display the winner and wait for a restart or quit."""
+        """Display the winner and wait for restart or quit."""
+
         while True:
-            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(
+                self.background,
+                (0, 0),
+            )
 
             message = self.winner_font.render(
                 winner,
@@ -275,10 +389,12 @@ class SpaceBattleGame:
             pygame.display.flip()
 
             for event in pygame.event.get():
+
                 if event.type == pygame.QUIT:
                     return False
 
                 if event.type == pygame.KEYDOWN:
+
                     if event.key == pygame.K_r:
                         self.reset_game()
                         return True
@@ -287,28 +403,53 @@ class SpaceBattleGame:
                         return False
 
             self.clock.tick(FPS)
+
     def run(self):
         """Run the main game loop."""
+
         running = True
 
         while running:
             self.clock.tick(FPS)
 
             for event in pygame.event.get():
+
                 if event.type == pygame.QUIT:
                     running = False
+                    continue
 
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_LCTRL:
-                        self.fire_bullet("yellow")
+                if event.type != pygame.KEYDOWN:
+                    continue
 
-                    elif event.key == pygame.K_RCTRL:
-                        self.fire_bullet("red")
+                # Controls screen
+                if self.show_controls:
 
+                    if event.key == pygame.K_RETURN:
+                        self.show_controls = False
+
+                    elif event.key == pygame.K_ESCAPE:
+                        running = False
+
+                    continue
+
+                # Gameplay controls
+                self.handle_keydown(event)
+
+            if not running:
+                break
+
+            # Show controls until ENTER is pressed.
+            if self.show_controls:
+                self.draw_controls()
+                continue
+
+            # Movement and bullets
             keys = pygame.key.get_pressed()
+
             self.handle_movement(keys)
             self.update_bullets()
 
+            # Check winner
             winner = self.get_winner()
 
             if winner:
@@ -332,3 +473,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
